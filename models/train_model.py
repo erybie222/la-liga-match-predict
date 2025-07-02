@@ -1,27 +1,32 @@
-
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import joblib
-from matplotlib import pyplot as plt
 import pandas as pd
-from sklearn.ensemble import RandomForestClassifier
+import matplotlib.pyplot as plt
+import xgboost as xgb
 from sklearn.metrics import classification_report
 from utils.preprocessing import get_preprocessed_data
 
-# Wczytanie danych
+# Wczytaj dane
 X, y, X_train, X_test, y_train, y_test, le_ftr = get_preprocessed_data()
 
-# Trening modelu Random Forest
-model = RandomForestClassifier(
+# Stwórz model XGBoost z najlepszymi parametrami (z tuningu)
+model = xgb.XGBClassifier(
+    objective='multi:softprob',
+    eval_metric='mlogloss',
+    num_class=len(le_ftr.classes_),
     n_estimators=100,
     max_depth=10,
-    min_samples_split=2,
-    min_samples_leaf=1,
-    class_weight='balanced',
+    learning_rate=0.2,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    use_label_encoder=False,
     random_state=42
 )
+
+# Trening
 model.fit(X_train, y_train)
 
 # Predykcja
@@ -30,18 +35,16 @@ y_pred = model.predict(X_test)
 # Raport klasyfikacji
 print(classification_report(y_test, y_pred, target_names=le_ftr.classes_))
 
-# Zapis modelu i label encodera
+# Zapisz model i LabelEncoder
 joblib.dump(model, 'models/best_model.pkl')
 joblib.dump(le_ftr, 'models/label_encoder.pkl')
 
-# (Opcjonalnie) Ważność cech
-importances = model.feature_importances_
-feature_importance = pd.Series(importances, index=X.columns).sort_values(ascending=False)
-
-# Wydruk i wykres
+# Ważność cech
+importance = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
 print("\n📊 Feature importance:")
-print(feature_importance)
+print(importance)
 
-feature_importance.plot(kind='bar', title='Feature Importance')
+# Wykres
+importance.plot(kind='bar', title='XGBoost Feature Importance')
 plt.tight_layout()
 plt.show()
