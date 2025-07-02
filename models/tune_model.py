@@ -12,13 +12,17 @@ from sklearn.model_selection import RandomizedSearchCV, train_test_split, Strati
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import LabelEncoder
 from utils.preprocessing import prepare_dataset
+from imblearn.over_sampling import SMOTE
+
+
 
 def tune_xgboost():
     X, y, le_ftr = prepare_dataset()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1, stratify=y)
-
+    smote = SMOTE(random_state=42)
+    X_train, y_train = smote.fit_resample(X_train, y_train)
     clf = xgb.XGBClassifier(
-        objective='multi:softprob',
+        objective='multi:softmax',
         eval_metric='mlogloss',
         use_label_encoder=False,
         n_jobs=-1,
@@ -72,7 +76,7 @@ def tune_xgboost():
     plt.tight_layout()
     plt.show()
 
-    joblib.dump(best_model, 'models/best_model_xgb.pkl')
+    joblib.dump(best_model, 'models/best_model.pkl')
 
 
     return best_model

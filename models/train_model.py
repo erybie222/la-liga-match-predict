@@ -25,6 +25,9 @@ model = xgb.XGBClassifier(
     use_label_encoder=False,
     random_state=42
 )
+from imblearn.over_sampling import SMOTE
+smote = SMOTE(random_state=42)
+X_train_bal, y_train_bal = smote.fit_resample(X_train, y_train)
 
 # Trening
 model.fit(X_train, y_train)
