@@ -17,8 +17,9 @@ from imblearn.over_sampling import SMOTE
 
 
 def tune_xgboost():
-    X, y, le_ftr = prepare_dataset()
+    X, y , le_ftr= prepare_dataset()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1, stratify=y)
+    le_ftr = joblib.load('models/label_encoder_smote.pkl')
     smote = SMOTE(random_state=42)
     X_train, y_train = smote.fit_resample(X_train, y_train)
     clf = xgb.XGBClassifier(
@@ -76,7 +77,7 @@ def tune_xgboost():
     plt.tight_layout()
     plt.show()
 
-    joblib.dump(best_model, 'models/best_model.pkl')
+    joblib.dump(best_model, 'models/best_model_tuned_smote.pkl')
 
 
     return best_model

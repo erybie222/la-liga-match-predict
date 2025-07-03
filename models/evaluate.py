@@ -11,7 +11,8 @@ from utils.preprocessing import get_preprocessed_data
 X, y, X_train, X_test, y_train, y_test, le_ftr = get_preprocessed_data()
 
 # Wczytanie modelu
-model = joblib.load('models/best_model.pkl')
+model = joblib.load('models/best_model_tuned_smote.pkl')
+le_ftr = joblib.load('models/label_encoder_smote.pkl')
 
 # Predykcja
 y_pred = model.predict(X_test)

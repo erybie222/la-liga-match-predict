@@ -25,11 +25,8 @@ model = xgb.XGBClassifier(
     use_label_encoder=False,
     random_state=42
 )
-from imblearn.over_sampling import SMOTE
-smote = SMOTE(random_state=42)
-X_train_bal, y_train_bal = smote.fit_resample(X_train, y_train)
 
-# Trening
+# Trening bez SMOTE
 model.fit(X_train, y_train)
 
 # Predykcja
@@ -39,7 +36,7 @@ y_pred = model.predict(X_test)
 print(classification_report(y_test, y_pred, target_names=le_ftr.classes_))
 
 # Zapisz model i LabelEncoder
-joblib.dump(model, 'models/best_model.pkl')
+joblib.dump(model, 'models/best_model.pkl')  # ← wersja bez SMOTE
 joblib.dump(le_ftr, 'models/label_encoder.pkl')
 
 # Ważność cech
