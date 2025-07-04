@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Query
+import pandas as pd
 from pydantic import BaseModel
 import joblib
 from utils.preprocessing import prepare_match_features
@@ -16,6 +17,9 @@ class PredictionResponse(BaseModel):
     probabilities: Union[Dict[str, float], None] = None
     error: Union[str, None] = None
 
+class MatchRequest(BaseModel):
+    home:str
+    away:str
 
 @app.get("/predict", response_model=PredictionResponse)
 def predict(home: str = Query(...), away: str = Query(...)):
@@ -39,3 +43,14 @@ def predict(home: str = Query(...), away: str = Query(...)):
     except Exception as e:
         print("Błąd przy predykcji:", str(e))
         return {"error": str(e)}
+
+
+@app.get("/teams")
+def list_teams():
+    df = pd.read_csv('data/LaLiga_Matches.csv')
+    teams = sorted(set(df['HomeTeam']) | set(df['AwayTeam']))
+    return {"teams": teams}
+
+@app.post("/predcit_json", response_model=PredictionResponse)
+def predict_json(request: MatchRequest):
+    return predict(request.home, request.away)
