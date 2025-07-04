@@ -1,3 +1,4 @@
+import joblib
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from features.form_stats import home_form_stats, away_form_stats
@@ -85,3 +86,40 @@ def get_preprocessed_data():
     X, y, le_ftr = prepare_dataset()
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=1)
     return X, y, X_train, X_test, y_train, y_test, le_ftr
+
+
+def prepare_match_features(home_team: str, away_team: str) -> pd.DataFrame:
+    df = pd.read_csv('data/LaLiga_Matches.csv', parse_dates=['Date'])
+    df = df.sort_values('Date')
+    df = compute_elo_ratings(df)
+    last_date = df['Date'].max()
+    last_season = df[df['Date'] == last_date]['Season'].values[0]
+
+    home_stats = home_form_stats(last_date, 5, home_team, df)
+    away_stats = away_form_stats(last_date, 5, away_team, df)
+    home_strength = get_team_season_strength(home_team, last_season, last_date, df)
+    away_strength = get_team_season_strength(away_team, last_season, last_date, df)
+    h2h_stats = get_h2h_stats(home_team, away_team, last_date, df)
+
+    latest_home_elo = df[df['HomeTeam'] == home_team]['home_elo'].iloc[-1] if not df[df['HomeTeam'] == home_team].empty else 1500
+    latest_away_elo = df[df['AwayTeam'] == away_team]['away_elo'].iloc[-1] if not df[df['AwayTeam'] == away_team].empty else 1500
+
+    features = {
+        'home_strength': home_strength,
+        'away_strength': away_strength,
+        'home_avg_goals_for': home_stats['avg_goals_for'],
+        'home_avg_goals_against': home_stats['avg_goals_against'],
+        'home_avg_goal_diff': home_stats['avg_goal_diff'],
+        'away_avg_goals_for': away_stats['avg_goals_for'],
+        'away_avg_goals_against': away_stats['avg_goals_against'],
+        'away_avg_goal_diff': away_stats['avg_goal_diff'],
+        'goal_diff_diff': home_stats['avg_goal_diff'] - away_stats['avg_goal_diff'],
+        'h2h_home_win_rate': h2h_stats['h2h_home_win_rate'],
+        'h2h_draw_rate': h2h_stats['h2h_draw_rate'],
+        'h2h_goal_diff_avg': h2h_stats['h2h_goal_diff_avg'],
+        'h2h_matches_count': h2h_stats['h2h_matches_count'],
+        'home_elo': latest_home_elo,
+        'away_elo': latest_away_elo
+    }
+
+    return pd.DataFrame([features])
