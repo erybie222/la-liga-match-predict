@@ -4,6 +4,7 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.simulation import simulate_season
 from features.elo import compute_elo_ratings
 import streamlit as st
 import pandas as pd
@@ -20,7 +21,7 @@ teams = sorted(set(df['HomeTeam']) | set(df["AwayTeam"]))
 
 
 with st.sidebar:
-    view = st.radio("📊 Choose view:", ["🧠 Match prediction", "📈 ELO ranking"])
+    view = st.radio("📊 Choose view:", ["🧠 Match prediction", "📈 ELO ranking", "🏆 Season Simulation"])
 
 if view == "📈 ELO ranking":
     st.title("📈 ELO ranking of La Liga teams")
@@ -48,6 +49,12 @@ if view == "📈 ELO ranking":
     df_plot = df_plot.sort_values('Date')  
     st.line_chart(df_plot.set_index('Date'))
 
+if view == "🏆 Season Simulation":
+    selected_season = st.selectbox("📅 Choose season", df["Season"].unique()[::-1])
+    if st.button("⚔️ Simulate full season"):
+        table = simulate_season(selected_season, df, model, label_encoder)
+        st.subheader(f"📊 Predicted Final Standings – {selected_season}")
+        st.dataframe(table)
 
 st.title("⚽ La Liga Match Predictor")
 
