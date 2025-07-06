@@ -57,10 +57,31 @@ if view == "📈 ELO ranking":
 
 if view == "🏆 Season Simulation":
     selected_season = st.selectbox("📅 Choose season", df["Season"].unique()[::-1])
-    if st.button("⚔️ Simulate full season"):
-        table = simulate_season(selected_season, df, model, label_encoder)
-        st.subheader(f"📊 Predicted Final Standings – {selected_season}")
-        st.dataframe(table)
+    if st.button("⚔️ Simulate full season") or "df_progress" in st.session_state:
+        if "df_progress" not in st.session_state:
+            table, df_progress = simulate_season(selected_season, df, model, label_encoder)
+            st.session_state.df_progress = df_progress
+            st.session_state.table = table
+        else:
+            df_progress = st.session_state.df_progress
+            table = st.session_state.table
+
+            st.subheader(f"📊 Predicted Final Standings – {selected_season}")
+            st.dataframe(table)
+
+        df_progress['Date'] = pd.to_datetime(df_progress['Date'], dayfirst=True)
+        df_progress = df_progress.sort_values('Date')
+
+        leader_points = df_progress.groupby('Date')['Points'].max().reset_index(name='LeaderPoints')
+
+        df_progress = df_progress.merge(leader_points, on='Date')
+        df_progress['BehindLeader'] = df_progress['LeaderPoints'] - df_progress['Points']
+
+        selected_team = st.selectbox("📍 Choose team to track vs leader", sorted(df_progress['Team'].unique()))
+        team_df = df_progress[df_progress['Team'] == selected_team]
+
+        st.line_chart(team_df.set_index('Date')['BehindLeader'])
+
 
 
 if view == "🧠 Match prediction":
