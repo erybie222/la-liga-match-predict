@@ -20,8 +20,12 @@ teams = sorted(set(df['HomeTeam']) | set(df["AwayTeam"]))
 
 
 
-with st.sidebar:
-    view = st.radio("📊 Choose view:", ["🧠 Match prediction", "📈 ELO ranking", "🏆 Season Simulation"])
+view = st.sidebar.radio("📊 Choose view:", [
+    "🧠 Match prediction",
+    "📈 ELO ranking",
+    "🏆 Season Simulation",
+    "📌 Team Overview"
+])
 
 if view == "📈 ELO ranking":
     st.title("📈 ELO ranking of La Liga teams")
@@ -49,6 +53,8 @@ if view == "📈 ELO ranking":
     df_plot = df_plot.sort_values('Date')  
     st.line_chart(df_plot.set_index('Date'))
 
+
+
 if view == "🏆 Season Simulation":
     selected_season = st.selectbox("📅 Choose season", df["Season"].unique()[::-1])
     if st.button("⚔️ Simulate full season"):
@@ -56,56 +62,123 @@ if view == "🏆 Season Simulation":
         st.subheader(f"📊 Predicted Final Standings – {selected_season}")
         st.dataframe(table)
 
-st.title("⚽ La Liga Match Predictor")
 
-history_path = os.path.join(os.path.dirname(__file__), '..', 'history', 'predictions.csv')
-if os.path.exists(history_path):
-    df_history = pd.read_csv(history_path)
-    st.dataframe(df_history.tail(5).iloc[::-1],use_container_width=True)
-else:
-    st.info("No predictions yet.")
+if view == "🧠 Match prediction":
+
+    st.title("⚽ La Liga Match Predictor")
+
+    history_path = os.path.join(os.path.dirname(__file__), '..', 'history', 'predictions.csv')
+    if os.path.exists(history_path):
+        df_history = pd.read_csv(history_path)
+        st.dataframe(df_history.tail(5).iloc[::-1],use_container_width=True)
+    else:
+        st.info("No predictions yet.")
 
 
-home = st.selectbox("🏠 Choose home team", teams)
-away = st.selectbox("🚗 Choose away team", teams)
+    home = st.selectbox("🏠 Choose home team", teams)
+    away = st.selectbox("🚗 Choose away team", teams)
 
-if home == away:
-    st.warning("Teams must be different!")
-else:
-    if st.button("🔮 Predict result"):
-        try:
-            features = prepare_match_features(home, away)
-            st.subheader("📋 Input features: ")
-            st.write(features.T)
+    if home == away:
+        st.warning("Teams must be different!")
+    else:
+        if st.button("🔮 Predict result"):
+            try:
+                features = prepare_match_features(home, away)
+                st.subheader("📋 Input features: ")
+                st.write(features.T)
 
-            pred = model.predict(features)[0]
-            proba = model.predict_proba(features)[0]
+                pred = model.predict(features)[0]
+                proba = model.predict_proba(features)[0]
 
-            pred_label = label_encoder.inverse_transform([pred])[0]
-            
-            st.success(f"**Predicted result: {pred_label}**")
+                pred_label = label_encoder.inverse_transform([pred])[0]
+                
+                st.success(f"**Predicted result: {pred_label}**")
 
-            st.subheader("📊 Probabilities:")
-            for i, p in enumerate(proba):
-                label = label_encoder.inverse_transform([i])[0]
-                st.write(f"{label}: {round(p*100, 2)}%")
+                st.subheader("📊 Probabilities:")
+                for i, p in enumerate(proba):
+                    label = label_encoder.inverse_transform([i])[0]
+                    st.write(f"{label}: {round(p*100, 2)}%")
 
-            history_path = os.path.join(os.path.dirname(__file__), '..', 'history', 'predictions.csv')
-            os.makedirs(os.path.dirname(history_path), exist_ok=True)
+                history_path = os.path.join(os.path.dirname(__file__), '..', 'history', 'predictions.csv')
+                os.makedirs(os.path.dirname(history_path), exist_ok=True)
 
-            with open(history_path, mode='a', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                if os.stat(history_path).st_size == 0:
-                    writer.writerow(["timestamp", "home_team", "away_team", "prediction", "proba_H", "proba_D", "proba_A"])
+                with open(history_path, mode='a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    if os.stat(history_path).st_size == 0:
+                        writer.writerow(["timestamp", "home_team", "away_team", "prediction", "proba_H", "proba_D", "proba_A"])
 
-                writer.writerow([
-                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    home,
-                    away,
-                    pred_label,
-                    round(proba[0], 3),
-                    round(proba[1], 3),
-                    round(proba[2], 3)
-                ])
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
+                    writer.writerow([
+                        datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        home,
+                        away,
+                        pred_label,
+                        round(proba[0], 3),
+                        round(proba[1], 3),
+                        round(proba[2], 3)
+                    ])
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+
+if view == "📌 Team Overview":
+    st.title("📌 Team Overview")
+
+    selected_team = st.selectbox("🔎 Choose team to analyze", teams)
+    selected_season = st.selectbox("📅 Choose season", sorted(df["Season"].unique(), reverse=True))
+
+    team_matches = df[
+        ((df["HomeTeam"] == selected_team) | (df["AwayTeam"] == selected_team)) &
+        (df["Season"] == selected_season)
+    ].sort_values("Date")
+
+    recent_matches = team_matches.tail(5)
+    results = []
+    for _, row in recent_matches.iterrows():
+        if row["HomeTeam"] == selected_team:
+            if row["FTHG"] > row["FTAG"]:
+                results.append("W")
+            elif row["FTHG"] < row["FTAG"]:
+                results.append("L")
+            else:
+                results.append("D")
+        else:
+            if row["FTAG"] > row["FTHG"]:
+                results.append("W")
+            elif row["FTAG"] < row["FTHG"]:
+                results.append("L")
+            else:
+                results.append("D")
+
+    goals_for = []
+    goals_against = []
+    points_over_time = []
+    cumulative_points = 0
+    dates = []
+
+    for _, row in team_matches.iterrows():
+        if row["HomeTeam"] == selected_team:
+            gf, ga = row["FTHG"], row["FTAG"]
+        else:
+            gf, ga = row["FTAG"], row["FTHG"]
+
+        goals_for.append(gf)
+        goals_against.append(ga)
+
+        if gf > ga:
+            cumulative_points += 3
+        elif gf == ga:
+            cumulative_points += 1
+
+        points_over_time.append(cumulative_points)
+        dates.append(row["Date"])
+
+    st.subheader(f"📅 Match history – {selected_team} ({selected_season})")
+    st.dataframe(team_matches[["Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "FTR"]])
+
+    st.subheader("📈 Recent form (last 5 matches)")
+    st.write(" ➤ " + " - ".join(results[::-1]))  
+
+    st.subheader("⚽ Average goals per match")
+    st.write(f"**Scored:** {round(sum(goals_for) / len(goals_for), 2)} | **Conceded:** {round(sum(goals_against) / len(goals_against), 2)}")
+
+    st.subheader("📈 Cumulative Points Over Time")
+    st.line_chart(pd.DataFrame({'Points': points_over_time}, index=pd.to_datetime(dates, dayfirst=True)))
