@@ -1,35 +1,23 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-import joblib
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, accuracy_score
+import seaborn as sns
+from sklearn.metrics import confusion_matrix, classification_report
+import streamlit as st
 
-# Wczytanie danych i label encodera
-from utils.preprocessing import get_preprocessed_data
-X, y, X_train, X_test, y_train, y_test, le_ftr = get_preprocessed_data()
+def evaluate_model(model, X_test, y_test, label_encoder):
+    y_pred = model.predict(X_test)
 
-# Wczytanie modelu
-model = joblib.load('models/best_model_tuned_smote.pkl')
-le_ftr = joblib.load('models/label_encoder_smote.pkl')
+    cm = confusion_matrix(y_test, y_pred)
+    labels = label_encoder.classes_
 
-# Predykcja
-y_pred = model.predict(X_test)
+    st.subheader("📊 Confusion Matrix")
+    fig, ax = plt.subplots()
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=labels, yticklabels=labels, ax=ax)
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("Actual")
+    st.pyplot(fig)
 
-
-# 1. Dokładność
-accuracy = accuracy_score(y_test, y_pred)
-print(f"📊 Dokładność modelu: {accuracy:.2%}")
-
-# 2. Raport klasyfikacji
-print("\n📋 Raport klasyfikacji:")
-print(classification_report(y_test, y_pred, target_names=le_ftr.classes_))
-
-# 3. Macierz pomyłek
-cm = confusion_matrix(y_test, y_pred)
-disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le_ftr.classes_)
-disp.plot(cmap='Blues')
-plt.title("🔍 Macierz pomyłek")
-plt.tight_layout()
-plt.show()
+    st.subheader("📋 Classification Report")
+    report = classification_report(y_test, y_pred, target_names=labels, output_dict=True)
+    report_df = pd.DataFrame(report).transpose()
+    st.dataframe(report_df.style.background_gradient(cmap="Greens"), use_container_width=True)

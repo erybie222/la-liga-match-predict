@@ -1,64 +1,43 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-import joblib
 import pandas as pd
-import matplotlib.pyplot as plt
-from sklearn.metrics import (
-    classification_report,
-    accuracy_score,
-    confusion_matrix,
-    ConfusionMatrixDisplay
-)
-from utils.preprocessing import get_preprocessed_data
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
+from sklearn.metrics import accuracy_score, f1_score, log_loss
+from sklearn.model_selection import train_test_split
+import joblib
 
-# Wczytaj dane testowe
-X, y, X_train, X_test, y_train, y_test, le_ftr = get_preprocessed_data()
+def compare_models(X: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
+    X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=42)
 
-# Modele do porównania
-model_paths = {
-    "No SMOTE": "models/best_model.pkl",
-    "SMOTE": "models/best_model_smote.pkl",
-    "Tuned SMOTE": "models/best_model_tuned_smote.pkl"
-}
+    tuned_model = joblib.load('best_model_tuned_smote.pkl')
 
-# Wyniki
-results = []
+    models = {
+        "Logistic Regression": LogisticRegression(max_iter=1000),
+        "Random Forest": RandomForestClassifier(n_estimators=100),
+        "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss'),
+    }
 
-# Porównanie
-for name, path in model_paths.items():
-    print(f"\n🔍 Model: {name}")
-    model = joblib.load(path)
-    y_pred = model.predict(X_test)
+    results = []
 
-    acc = accuracy_score(y_test, y_pred)
-    report = classification_report(y_test, y_pred, target_names=le_ftr.classes_, output_dict=True)
-    f1_macro = report["macro avg"]["f1-score"]
+    for name, clf in models.items():
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_test)
+        y_proba = clf.predict_proba(X_test)
+        results.append({
+            "Model": name,
+            "Accuracy": accuracy_score(y_test, y_pred),
+            "F1 Score": f1_score(y_test, y_pred, average='weighted'),
+            "Log Loss": log_loss(y_test, y_proba)
+        })
 
+    y_pred = tuned_model.predict(X_test)
+    y_proba = tuned_model.predict_proba(X_test)
     results.append({
-        "Model": name,
-        "Accuracy": acc,
-        "F1 Macro": f1_macro
+        "Model": "XGBoost tuned with SMOTE",
+        "Accuracy": accuracy_score(y_test, y_pred),
+        "F1 Score": f1_score(y_test, y_pred, average='weighted'),
+        "Log Loss": log_loss(y_test, y_proba)
     })
 
-    print(f"Accuracy: {acc:.4f}")
-    print(classification_report(y_test, y_pred, target_names=le_ftr.classes_))
-
-    # Macierz pomyłek
-    cm = confusion_matrix(y_test, y_pred)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le_ftr.classes_)
-    disp.plot(cmap='Blues')
-    plt.title(f"Confusion Matrix: {name}")
-    plt.tight_layout()
-    plt.show()
-
-# Tabela porównawcza
-df = pd.DataFrame(results).set_index("Model")
-print("\n📊 Podsumowanie:")
-print(df)
-
-df.plot(kind='barh', title='Porównanie modeli: Accuracy vs F1 Macro')
-plt.xlabel("Wartość")
-plt.tight_layout()
-plt.show()
+    df_results = pd.DataFrame(results).sort_values("F1 Score", ascending=False)
+    return df_results
