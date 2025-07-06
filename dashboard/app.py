@@ -9,8 +9,10 @@ from features.elo import compute_elo_ratings
 import streamlit as st
 import pandas as pd
 import joblib
-from utils.preprocessing import prepare_match_features
+from utils.preprocessing import prepare_dataset, prepare_match_features, get_preprocessed_data
 from utils.elo_utils import get_current_elo_ranking
+from models.compare_models import compare_models
+from models.evaluate import evaluate_model
 
 model = joblib.load('../models/best_model_tuned_smote.pkl')
 label_encoder = joblib.load('../models/label_encoder_smote.pkl')
@@ -24,7 +26,9 @@ view = st.sidebar.radio("📊 Choose view:", [
     "🧠 Match prediction",
     "📈 ELO ranking",
     "🏆 Season Simulation",
-    "📌 Team Overview"
+    "📌 Team Overview",
+    "🔬 Model Comparison",
+    "📐 Model Evaluation"
 ])
 
 if view == "📈 ELO ranking":
@@ -55,7 +59,7 @@ if view == "📈 ELO ranking":
 
 
 
-if view == "🏆 Season Simulation":
+elif view == "🏆 Season Simulation":
     selected_season = st.selectbox("📅 Choose season", df["Season"].unique()[::-1])
     if st.button("⚔️ Simulate full season") or "df_progress" in st.session_state:
         if "df_progress" not in st.session_state:
@@ -84,7 +88,7 @@ if view == "🏆 Season Simulation":
 
 
 
-if view == "🧠 Match prediction":
+elif view == "🧠 Match prediction":
 
     st.title("⚽ La Liga Match Predictor")
 
@@ -140,7 +144,7 @@ if view == "🧠 Match prediction":
             except Exception as e:
                 st.error(f"Error: {str(e)}")
 
-if view == "📌 Team Overview":
+elif view == "📌 Team Overview":
     st.title("📌 Team Overview")
 
     selected_team = st.selectbox("🔎 Choose team to analyze", teams)
@@ -203,3 +207,22 @@ if view == "📌 Team Overview":
 
     st.subheader("📈 Cumulative Points Over Time")
     st.line_chart(pd.DataFrame({'Points': points_over_time}, index=pd.to_datetime(dates, dayfirst=True)))
+
+elif view == "🔬 Model Comparison":
+    st.title("🔬 Model Performance Comparison")
+
+    X, y, _ = prepare_dataset()
+
+    df_results = compare_models(X, y)
+
+    st.dataframe(df_results.style.background_gradient(cmap='Blues'), use_container_width=True)
+    st.bar_chart(df_results.set_index("Model")[["Accuracy", "F1 Score"]])
+ 
+elif view == "📐 Model Evaluation":
+    st.title("📐 Model Evaluation")
+
+    
+
+    _, _, _, X_test, _, y_test, le = get_preprocessed_data()
+
+    evaluate_model(model, X_test, y_test, le)
