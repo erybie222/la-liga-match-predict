@@ -1,3 +1,4 @@
+import os
 import joblib
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
@@ -8,8 +9,9 @@ from features.elo import compute_elo_ratings
 from sklearn.model_selection import train_test_split
 
 
-def prepare_dataset(csv_path='./data/LaLiga_Matches.csv', N=5):
-    dataset = pd.read_csv(csv_path)
+def prepare_dataset(N=5):
+    csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'LaLiga_Matches.csv')
+    dataset = pd.read_csv(csv_path, parse_dates=['Date'])
     dataset['Date'] = pd.to_datetime(dataset['Date'], dayfirst=True)
     dataset = dataset.sort_values('Date')
 
@@ -39,7 +41,6 @@ def prepare_dataset(csv_path='./data/LaLiga_Matches.csv', N=5):
         away_strength_list.append(away_strength)
         h2h_stats_list.append(h2h_stats)
 
-    # Zamiana na DataFrame
     home_df = pd.DataFrame(home_stats_list).add_prefix('home_')
     away_df = pd.DataFrame(away_stats_list).add_prefix('away_')
     h2h_df = pd.DataFrame(h2h_stats_list)
@@ -51,18 +52,15 @@ def prepare_dataset(csv_path='./data/LaLiga_Matches.csv', N=5):
         h2h_df
     ], axis=1)
 
-    # Dodanie kolumn różnicowych
     dataset_features['home_strength'] = home_strength_list
     dataset_features['away_strength'] = away_strength_list
     dataset_features['form_diff'] = dataset_features['home_form_points'] - dataset_features['away_form_points']
     dataset_features['goal_diff_diff'] = dataset_features['home_avg_goal_diff'] - dataset_features['away_avg_goal_diff']
     dataset_features['win_ratio_diff'] = dataset_features['home_win_ratio'] - dataset_features['away_win_ratio']
 
-    # Kodowanie etykiet
     le_ftr = LabelEncoder()
     dataset_features['FTR_encoded'] = le_ftr.fit_transform(dataset_features['FTR'])
 
-    # Feature columns
     feature_columns = [
         'home_strength', 'away_strength',
         'home_avg_goals_for', 'home_avg_goals_against',
@@ -74,7 +72,6 @@ def prepare_dataset(csv_path='./data/LaLiga_Matches.csv', N=5):
         'home_elo', 'away_elo'
     ]
 
-    # Finalne dane
     X = dataset_features[feature_columns]
     y = dataset_features['FTR_encoded']
 
@@ -89,8 +86,8 @@ def get_preprocessed_data():
 
 
 def prepare_match_features(home_team: str, away_team: str) -> pd.DataFrame:
-    df = pd.read_csv('data/LaLiga_Matches.csv', parse_dates=['Date'])
-    df = df.sort_values('Date')
+    csv_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'LaLiga_Matches.csv')
+    df = pd.read_csv(csv_path, parse_dates=['Date'])
     df = compute_elo_ratings(df)
     last_date = df['Date'].max()
     last_season = df[df['Date'] == last_date]['Season'].values[0]
