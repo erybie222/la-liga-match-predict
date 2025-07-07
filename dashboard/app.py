@@ -3,6 +3,9 @@ from datetime import datetime
 import sys
 import os
 
+from matplotlib import pyplot as plt
+import shap
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from utils.simulation import simulate_season
 from features.elo import compute_elo_ratings
@@ -13,6 +16,7 @@ from utils.preprocessing import prepare_dataset, prepare_match_features, get_pre
 from utils.elo_utils import get_current_elo_ranking
 from models.compare_models import compare_models
 from models.evaluate import evaluate_model
+from utils.shap_explainer import get_shap_explanation
 
 model = joblib.load('../models/best_model_tuned_smote.pkl')
 label_encoder = joblib.load('../models/label_encoder_smote.pkl')
@@ -28,7 +32,8 @@ view = st.sidebar.radio("📊 Choose view:", [
     "🏆 Season Simulation",
     "📌 Team Overview",
     "🔬 Model Comparison",
-    "📐 Model Evaluation"
+    "📐 Model Evaluation",
+    "🔎 Explain Prediction"
 ])
 
 if view == "📈 ELO ranking":
@@ -226,3 +231,38 @@ elif view == "📐 Model Evaluation":
     _, _, _, X_test, _, y_test, le = get_preprocessed_data()
 
     evaluate_model(model, X_test, y_test, le)
+
+elif view == "🔎 Explain Prediction":
+    st.title("🔎 Explain Prediction")
+
+    home = st.selectbox("🏠 Home team", teams, key="explain_home")
+    away = st.selectbox("🚗 Away team", teams, key="explain_away")
+
+    if home == away:
+        st.warning("Choose two different teams.")
+    elif st.button("🔍 Explain prediction"):
+        try:
+            features = prepare_match_features(home, away)
+            pred_proba = model.predict_proba(features)[0]
+            pred_class_index = pred_proba.argmax()
+            pred_class_label = label_encoder.inverse_transform([pred_class_index])[0]
+
+            st.success(f"🔮 Predicted result: {pred_class_label} ({round(pred_proba[pred_class_index]*100, 2)}%)")
+
+
+            shap_values, explainer = get_shap_explanation(model, features)
+
+            st.subheader(f"🔍 SHAP Waterfall for predicted class ({pred_class_label})")
+            shap_single_class = shap_values[0, :, pred_class_index]
+            fig1 = plt.figure()
+            shap.plots.waterfall(shap_single_class, show=False)
+            st.pyplot(fig1)
+
+            st.subheader("📊 SHAP Bar Plot (single prediction)")
+            fig2 = plt.figure()
+            shap.plots.bar(shap_values[0, :, pred_class_index], max_display=10, show=False)
+            st.pyplot(fig2)
+
+
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
