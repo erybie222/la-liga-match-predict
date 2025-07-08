@@ -1,5 +1,3 @@
-# models/tune_xgboost.py
-
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -40,7 +38,7 @@ def tune_xgboost():
     'reg_alpha': [0, 0.5, 1],
     'reg_lambda': [1, 1.5, 2],
     'min_child_weight': [1, 3, 5],
-    'scale_pos_weight': [1]  # bo klasy masz zbalansowane przez stratify
+    'scale_pos_weight': [1]  
     }
 
 
@@ -68,7 +66,6 @@ def tune_xgboost():
     print("\n=== Raport końcowy ===")
     print(classification_report(y_test, y_pred, target_names=le_ftr.classes_))
 
-    # Feature importance
     importance = pd.Series(best_model.feature_importances_, index=X.columns).sort_values(ascending=False)
     print("\n=== Feature importance ===")
     print(importance)
@@ -78,6 +75,9 @@ def tune_xgboost():
     plt.show()
 
     joblib.dump(best_model, 'models/best_model_tuned_smote.pkl')
+
+    df_results = pd.DataFrame(search.cv_results_)
+    df_results.to_csv('results/tuning_results.csv', index=False)
 
 
     return best_model

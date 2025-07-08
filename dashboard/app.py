@@ -33,7 +33,8 @@ view = st.sidebar.radio("📊 Choose view:", [
     "📌 Team Overview",
     "🔬 Model Comparison",
     "📐 Model Evaluation",
-    "🔎 Explain Prediction"
+    "🔎 Explain Prediction",
+    "📊 Hyperparameter Tuning Results"
 ])
 
 if view == "📈 ELO ranking":
@@ -262,7 +263,24 @@ elif view == "🔎 Explain Prediction":
             fig2 = plt.figure()
             shap.plots.bar(shap_values[0, :, pred_class_index], max_display=10, show=False)
             st.pyplot(fig2)
-
-
         except Exception as e:
             st.error(f"Error: {str(e)}")
+elif view == "📊 Hyperparameter Tuning Results":
+    st.title("📊 Hyperparameter Tuning Results")
+
+    try:
+        df_tuning = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'results', 'tuning_results.csv'))
+
+        metric = st.selectbox("📈 Choose metric to sort by:", ["mean_test_score", "rank_test_score", "mean_fit_time"])
+        df_show = df_tuning.sort_values(metric, ascending=(metric != "rank_test_score"))
+
+        st.dataframe(df_show[[
+            "params", "mean_test_score", "rank_test_score", "mean_fit_time"
+        ]].style.background_gradient(cmap='Greens'), use_container_width=True)
+
+        st.subheader("📊 Best 10 configurations (mean_test_score)")
+        st.bar_chart(df_show.nlargest(10, "mean_test_score").set_index("rank_test_score")["mean_test_score"])
+
+    except Exception as e:
+        st.error(f"❌ Could not load tuning results: {str(e)}")
+

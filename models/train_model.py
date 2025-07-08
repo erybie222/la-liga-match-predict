@@ -9,10 +9,8 @@ import xgboost as xgb
 from sklearn.metrics import classification_report
 from utils.preprocessing import get_preprocessed_data
 
-# Wczytaj dane
 X, y, X_train, X_test, y_train, y_test, le_ftr = get_preprocessed_data()
 
-# Stwórz model XGBoost z najlepszymi parametrami (z tuningu)
 model = xgb.XGBClassifier(
     objective='multi:softprob',
     eval_metric='mlogloss',
@@ -26,25 +24,19 @@ model = xgb.XGBClassifier(
     random_state=42
 )
 
-# Trening bez SMOTE
 model.fit(X_train, y_train)
 
-# Predykcja
 y_pred = model.predict(X_test)
 
-# Raport klasyfikacji
 print(classification_report(y_test, y_pred, target_names=le_ftr.classes_))
 
-# Zapisz model i LabelEncoder
-joblib.dump(model, 'models/best_model.pkl')  # ← wersja bez SMOTE
+joblib.dump(model, 'models/best_model.pkl')
 joblib.dump(le_ftr, 'models/label_encoder.pkl')
 
-# Ważność cech
 importance = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
 print("\n📊 Feature importance:")
 print(importance)
 
-# Wykres
 importance.plot(kind='bar', title='XGBoost Feature Importance')
 plt.tight_layout()
 plt.show()
