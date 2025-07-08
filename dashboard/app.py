@@ -7,6 +7,7 @@ from matplotlib import pyplot as plt
 import shap
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from utils.map_utils import generate_elo_map
 from utils.simulation import simulate_season
 from features.elo import compute_elo_ratings
 import streamlit as st
@@ -17,6 +18,7 @@ from utils.elo_utils import get_current_elo_ranking
 from models.compare_models import compare_models
 from models.evaluate import evaluate_model
 from utils.shap_explainer import get_shap_explanation
+from streamlit_folium import folium_static
 
 model = joblib.load('../models/best_model_tuned_smote.pkl')
 label_encoder = joblib.load('../models/label_encoder_smote.pkl')
@@ -34,7 +36,8 @@ view = st.sidebar.radio("📊 Choose view:", [
     "🔬 Model Comparison",
     "📐 Model Evaluation",
     "🔎 Explain Prediction",
-    "📊 Hyperparameter Tuning Results"
+    "📊 Hyperparameter Tuning Results",
+    "🗺️ ELO Map"
 ])
 
 if view == "📈 ELO ranking":
@@ -284,3 +287,7 @@ elif view == "📊 Hyperparameter Tuning Results":
     except Exception as e:
         st.error(f"❌ Could not load tuning results: {str(e)}")
 
+elif view == "🗺️ ELO Map":
+    st.title("🗺️ ELO Ranking Map of La Liga")
+    m = generate_elo_map()
+    folium_static(m)
