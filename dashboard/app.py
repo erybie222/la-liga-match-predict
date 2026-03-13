@@ -2,6 +2,7 @@ import csv
 from datetime import datetime
 import sys
 import os
+from pathlib import Path
 
 from matplotlib import pyplot as plt
 import shap
@@ -20,10 +21,17 @@ from models.evaluate import evaluate_model
 from utils.shap_explainer import get_shap_explanation
 from streamlit_folium import folium_static
 
-model = joblib.load('../models/best_model_tuned_smote.pkl')
-label_encoder = joblib.load('../models/label_encoder_smote.pkl')
 
-df = pd.read_csv(os.path.join(os.path.dirname(__file__), '..', 'data', 'LaLiga_Matches.csv'), parse_dates=['Date'])
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+MODELS_DIR = ROOT_DIR / "models"
+DATA_PATH = ROOT_DIR / "data" / "LaLiga_Matches.csv"
+model_path = MODELS_DIR / "best_model_tuned_smote.pkl"
+label_encoder_path = MODELS_DIR / "label_encoder_smote.pkl"
+
+model = joblib.load(model_path)
+label_encoder = joblib.load(label_encoder_path)
+df = pd.read_csv(os.path.join(DATA_PATH), parse_dates=['Date'])
 teams = sorted(set(df['HomeTeam']) | set(df["AwayTeam"]))
 
 

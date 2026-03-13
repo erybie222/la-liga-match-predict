@@ -2,7 +2,6 @@ import pandas as pd
 
 
 def get_team_season_strength(team: str, season: str, date: pd.Timestamp, df: pd.DataFrame) -> float:
-    # wybierz mecze tej drużyny w danym sezonie przed podaną datą
     past_matches = df[
         ((df['HomeTeam'] == team) | (df['AwayTeam'] == team)) &
         (df['Season'] == season) &

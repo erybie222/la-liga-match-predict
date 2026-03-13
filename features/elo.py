@@ -11,7 +11,6 @@ def compute_elo_ratings(df: pd.DataFrame, k: float = 20, start_rating: float = 1
         away = row['AwayTeam']
         result = row['FTR']
 
-        # Initialize if team not seen before
         if home not in team_elos:
             team_elos[home] = start_rating
         if away not in team_elos:
@@ -20,11 +19,9 @@ def compute_elo_ratings(df: pd.DataFrame, k: float = 20, start_rating: float = 1
         r_home = team_elos[home]
         r_away = team_elos[away]
 
-        # Expected score
         e_home = 1 / (1 + 10 ** ((r_away - r_home) / 400))
         e_away = 1 - e_home
 
-        # Actual result
         if result == 'H':
             s_home, s_away = 1, 0
         elif result == 'A':
@@ -32,11 +29,9 @@ def compute_elo_ratings(df: pd.DataFrame, k: float = 20, start_rating: float = 1
         else:
             s_home, s_away = 0.5, 0.5
 
-        # Update ratings
         team_elos[home] = r_home + k * (s_home - e_home)
         team_elos[away] = r_away + k * (s_away - e_away)
 
-        # Append pre-match ratings
         home_elo_list.append(r_home)
         away_elo_list.append(r_away)
 

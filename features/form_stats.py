@@ -1,6 +1,5 @@
 import pandas as pd
 
-#N is number of last matches
 def home_form_stats(date: pd.Timestamp, N: int, team: str, df: pd.DataFrame) -> dict:
     past_matches = df[
         ((df['HomeTeam'] == team) | (df['AwayTeam'] == team)) &

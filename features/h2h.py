@@ -29,12 +29,11 @@ def get_h2h_stats(home_team: str, away_team: str, date: pd.Timestamp, df: pd.Dat
                 draws += 1
             diff = row['FTHG'] - row['FTAG']
         else:
-            # odwrotny mecz: away vs home
             if row['FTR'] == 'A':
                 home_wins += 1
             elif row['FTR'] == 'D':
                 draws += 1
-            diff = row['FTAG'] - row['FTHG']  # zamiana, bo gospodarze są teraz jako goście
+            diff = row['FTAG'] - row['FTHG']
 
         goal_diffs.append(diff)
 
